@@ -1,0 +1,128 @@
+<html>
+  <head>
+    <script
+      src="https://unpkg.com/react@16/umd/react.development.js"
+      crossorigin
+    ></script>
+    <script
+      src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"
+      crossorigin
+    ></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.0.4/redux.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router-dom/5.0.1/react-router-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+    <style>
+      body {
+        font-family: verdana;
+      }
+      nav {
+        display: flex;
+        justify-content: space-around;
+      }
+      a {
+        padding: 0.5rem;
+      }
+      .active {
+        background-color: tomato;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const { Component } = React;
+      const { createStore, combineReducers } = Redux;
+      const { NavLink, HashRouter, Route } = ReactRouterDOM;
+      const connect = Comp => {
+        class Connected extends Component {
+          constructor() {
+            super();
+            this.state = store.getState();
+          }
+          componentWillUnmount() {
+            this.unsubscribe();
+          }
+          componentDidMount() {
+            this.unsubscribe = store.subscribe(() =>
+              this.setState(store.getState())
+            );
+          }
+          render() {
+            return <Comp {...this.state} {...this.props} />;
+          }
+        }
+        return Connected;
+      };
+      const reducer = combineReducers({
+        events: (state = [], action) => {
+          if (action.type === "SET_EVENTS") {
+            state = action.events;
+          }
+          return state;
+        }
+      });
+
+      //   const comReducer = combineReducers({ reducer });
+      const store = createStore(reducer);
+      //   console.log(store);
+
+      const _Nav = ({ events }) => {
+        console.log(events);
+        return (
+          <div>
+            <NavLink exact to="/" activeClassName="active">
+              Home
+            </NavLink>
+            <NavLink to="/events">Events({events.length})</NavLink>
+          </div>
+        );
+      };
+
+      const Home = ({ events }) => {
+        return <div>You have {events.length}</div>;
+      };
+
+      const Event = ({ events }) => {
+        return (
+          <ul>
+            {events.map((event, i) => (
+              <li key={event.id}>
+                {" "}
+                {event.name} {moment(event.date).format("MMM DD YYYY")}
+              </li>
+            ))}
+          </ul>
+        );
+      };
+      const Nav = connect(_Nav);
+      const HomeComp = connect(Home);
+      const EventComp = connect(Event);
+
+      class App extends Component {
+        async componentDidMount() {
+          const response = (await axios.get("/api/events")).data;
+          store.dispatch({ type: "SET_EVENTS", events: response });
+        }
+
+        render() {
+          return (
+            <div>
+              <h1>Acme Event Planner with Redux</h1>
+              <HashRouter>
+                <Route component={Nav} />
+                <Route exact path="/" component={HomeComp} />
+                <Route path="/events" component={EventComp} />
+              </HashRouter>
+            </div>
+          );
+        }
+      }
+      ReactDOM.render(<App />, document.querySelector("#root"));
+    </script>
+  </body>
+</html>
