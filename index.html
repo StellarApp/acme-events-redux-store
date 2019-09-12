@@ -19,7 +19,7 @@
       body {
         font-family: verdana;
       }
-      nav {
+      #nav {
         display: flex;
         justify-content: space-around;
       }
@@ -30,6 +30,14 @@
         background-color: tomato;
         color: white;
       }
+      button {
+        padding: 15px;
+        margin: 10px;
+        color: white;
+        border: white;
+        border-radius: 15px;
+        background: linear-gradient(#e66465, #9198e5);
+      }
     </style>
   </head>
   <body>
@@ -38,6 +46,7 @@
       const { Component } = React;
       const { createStore, combineReducers } = Redux;
       const { NavLink, HashRouter, Route } = ReactRouterDOM;
+
       const connect = Comp => {
         class Connected extends Component {
           constructor() {
@@ -58,23 +67,28 @@
         }
         return Connected;
       };
+
       const reducer = combineReducers({
         events: (state = [], action) => {
           if (action.type === "SET_EVENTS") {
             state = action.events;
+          } else if (action.type === "ADD_EVENT") {
+            state = [...state, action.event];
+          } else if (action.type == "DELETE_EVENT") {
+            // console.log("State is", state);
+            const _state = state.filter(st => action.id !== st.id);
+            state = _state;
           }
           return state;
         }
       });
 
-      //   const comReducer = combineReducers({ reducer });
       const store = createStore(reducer);
-      //   console.log(store);
 
       const _Nav = ({ events }) => {
-        console.log(events);
+        // console.log(events);
         return (
-          <div>
+          <div id="nav">
             <NavLink exact to="/" activeClassName="active">
               Home
             </NavLink>
@@ -84,24 +98,36 @@
       };
 
       const Home = ({ events }) => {
-        return <div>You have {events.length}</div>;
+        return <div>You've got {events.length} event(s)!</div>;
       };
 
       const Event = ({ events }) => {
         return (
-          <ul>
-            {events.map((event, i) => (
-              <li key={event.id}>
-                {" "}
-                {event.name} {moment(event.date).format("MMM DD YYYY")}
-              </li>
-            ))}
-          </ul>
+          <div>
+            <button onClick={addEvent}> Create </button>
+            <ul>
+              {events.map((event, i) => (
+                <li key={event.id} onClick={() => deleteEvent(event.id)}>
+                  {event.name} {moment(event.date).format("MMM DD YYYY")}
+                </li>
+              ))}
+            </ul>
+          </div>
         );
       };
       const Nav = connect(_Nav);
       const HomeComp = connect(Home);
       const EventComp = connect(Event);
+
+      const addEvent = async () => {
+        const response = (await axios.post("/api/events")).data;
+        store.dispatch({ type: "ADD_EVENT", event: response });
+      };
+
+      const deleteEvent = async id => {
+        const response = (await axios.delete(`/api/events/${id}`)).data;
+        store.dispatch({ type: "DELETE_EVENT", id: id });
+      };
 
       class App extends Component {
         async componentDidMount() {
